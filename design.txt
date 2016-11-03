@@ -1,23 +1,35 @@
-Heuristic <- Zac
-	1 - Take a corner
-	2 - Take a side
-	3 - Middle 4x4
-	4 - Higher number of moves available
+Heuristic <- Zac ✔︎
+	valuations of various cell types
+	c   ceb e   e   e   e   ceb c
+	ceb ccb ecb ecb ecb ecb ccb ceb
+	e   ecb c   c   c   c   ecb e
+	e   ecb c   c   c   c   ecb e
+	e   ecb c   c   c   c   ecb e
+	e   ecb c   c   c   c   ecb e
+	ceb ccb ecb ecb ecb ecb ccb ceb
+	c   ceb e   e   e   e   ceb c
 
-	When we can explore the full tree:
-	Only care about win/lose (don't compare apples to oranges)
+	current values:
+		corner = 5
+		edge = 3
+		center = 2
+		edgeCenterBridge= -1
+		cornerEdgeBridge = -3
+		cornerCenterBridge= -5
 
-	Implement first, tune for competition
+	1) compute the sum of cells held for self/opponent and multiply by value for that cell
+	2) add the difference between available moves to each player
 
 Algorithm
-	Alphabeta pruning core - can be seeded with previous results <- Zac
+	Alphabeta pruning core - can be seeded with previous results <- Zac ✔︎
 	Iterative deepening to max depth within allowed time <- Matt
-	Heuristic to determine best amount of time to use per move <- Matt
 	Use priority queue to explore promising (most likely to let us prune the most nodes) moves first <- Zac
 
 Timing
-	At each level of iterative deepening, estimate time cost of depth + 1 and stop if more than alloted remaining time
+	Heuristic to determine best amount of time to use per move: <- Matt
+		At each level of iterative deepening, estimate time cost of depth + 1 and stop if more than allotted remaining time
 
 Data Structures
-	Node w/ Alpha, Beta, Heuristic?, boardState
-	GetChildren generates children (not saved in Node)
+	Node w/ Alpha, Beta, Heuristic, boardState ✔︎
+	Minimax takes a node and therefore the timer can update the tree with new information ✔︎
+	Save previously explored nodes (memoization) <- ?
