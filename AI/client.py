@@ -45,6 +45,20 @@ def readMessage(sock):
 
 	return (turn, round, t1, t2)
 
+def winner(state):
+	score = 0
+	for row in state:
+		for slot in row:
+			if slot == 1:
+				score += 1
+			if slot == 2:
+				score -= 1
+	if score > 0:
+		return 1
+	if score < 0:
+		return 2
+	return 0
+
 # establish a connection with the server and play whenever it is this player's turn
 def playGame(me, host, AI):
 	sock = initClient(me, host)
@@ -56,7 +70,7 @@ def playGame(me, host, AI):
 			print myMove
 			sock.send(str(myMove[0]) + '\n' + str(myMove[1]) + '\n')
 	time.sleep(1)
-	return
+	return winner(state)
 
 # call: python client.py [ipaddress] [player_number] [AIType]
 #   ipaddress is the ipaddress on the computer the server was launched on.  Enter 'localhost' if it is on the same computer
@@ -72,4 +86,4 @@ if __name__ == '__main__':
 	else:
 		AI = RandomAI(me)
 
-	playGame(me, host, AI)
+	sys.exit(playGame(me, host, AI))
