@@ -33,3 +33,4 @@ Data Structures
 	Node w/ Alpha, Beta, Heuristic, boardState ✔︎
 	Minimax takes a node and therefore the timer can update the tree with new information ✔︎
 	Save previously explored nodes (memoization) <- ?
+	Immutable data structure for state? <- Zac
