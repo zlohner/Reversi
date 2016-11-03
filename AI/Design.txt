@@ -1,0 +1,23 @@
+Heuristic <- Zac
+	1 - Take a corner
+	2 - Take a side
+	3 - Middle 4x4
+	4 - Higher number of moves available
+
+	When we can explore the full tree:
+	Only care about win/lose (don't compare apples to oranges)
+
+	Implement first, tune for competition
+
+Algorithm
+	Alphabeta pruning core - can be seeded with previous results <- Zac
+	Iterative deepening to max depth within allowed time <- Matt
+	Heuristic to determine best amount of time to use per move <- Matt
+	Use priority queue to explore promising (most likely to let us prune the most nodes) moves first <- Zac
+
+Timing
+	At each level of iterative deepening, estimate time cost of depth + 1 and stop if more than alloted remaining time
+
+Data Structures
+	Node w/ Alpha, Beta, Heuristic?, boardState
+	GetChildren generates children (not saved in Node)
