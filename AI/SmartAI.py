@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import time
+
 from AI import AI
 
 TOTAL_MOVES = 64
@@ -179,8 +181,29 @@ class SmartAI(AI):
 
 	# get move (uses minimax)
 	def move(self, **kwargs):
+		startTime = time.clock()
+
 		state = kwargs['state']
 		round = kwargs['round']
-		node = Node(state, round, -1, -1)
-		moveNode = self.minimax(node)
+
+		myTimer = kwargs['t1'] if self.me == 1 else kwargs['t2']
+		myRemainingMoves = (TOTAL_MOVES - round + 1)/2	# the +1 forces it to round up, so we can integer divide and get the right answer as either player
+		myTimePerTurn = myTimer/(myRemainingMoves+1)	# this gives us enough time for one extra turn, just so we have breathing room
+		# TODO - weight things differently so we know to spend more time at crucial parts of the game and less at other times
+		print 'I can spend %f this turn' % (myTimePerTurn)
+
+		estimated_factor = 4	# ie, it takes us 4 times as long to go one more depth
+		depth = 0
+		while depth < TOTAL_MOVES-round:
+			depth += 1
+			moveNode = self.minimax(Node(state, round, -1, -1, depth))
+
+			elapsed = time.clock() - startTime
+			if elapsed*estimated_factor > myTimePerTurn:
+				break
+		if depth == TOTAL_MOVES-round:
+			print 'Exhausted the entire tree in %f seconds' % (elapsed)
+		else:
+			print 'Calling it quits! Got to depth %d in %f seconds' % (depth, elapsed)
+
 		return [moveNode.row, moveNode.col]
