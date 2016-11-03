@@ -194,9 +194,11 @@ class SmartAI(AI):
 
 		estimated_factor = 4	# ie, it takes us 4 times as long to go one more depth
 		depth = 0
+		moveNode = Node(state, round, -1, -1, 0)
 		while depth < TOTAL_MOVES-round:
 			depth += 1
-			moveNode = self.minimax(Node(state, round, -1, -1, depth))
+			# seeding it with previous alpha/beta MIGHT be a bad idea?
+			moveNode = self.minimax(Node(state, round, -1, -1, depth, alpha=moveNode.alpha, beta=moveNode.beta))
 
 			elapsed = time.clock() - startTime
 			if elapsed*estimated_factor > myTimePerTurn:
