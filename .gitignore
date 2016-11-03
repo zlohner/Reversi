@@ -1,4 +1,4 @@
 .DS_Store
-.pyc
-.class
+*.pyc
+*.class
 */GameLog.txt
