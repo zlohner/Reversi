@@ -1,13 +1,13 @@
 Heuristic <- Zac ✔︎
 	valuations of various cell types
-	c   ceb e   e   e   e   ceb c
+	cr  ceb e   e   e   e   ceb cr
 	ceb ccb ecb ecb ecb ecb ccb ceb
 	e   ecb c   c   c   c   ecb e
 	e   ecb c   c   c   c   ecb e
 	e   ecb c   c   c   c   ecb e
 	e   ecb c   c   c   c   ecb e
 	ceb ccb ecb ecb ecb ecb ccb ceb
-	c   ceb e   e   e   e   ceb c
+	cr  ceb e   e   e   e   ceb cr
 
 	current values:
 		corner = 5

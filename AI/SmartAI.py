@@ -23,17 +23,17 @@ class SmartAI(AI):
 		AI.__init__(self, me)
 
 	# count my current score
-	def countScore(self, state):
+	def countScore(self, state, round):
 		score = 0
 		for row in state:
 			for slot in row:
 				if slot == self.me:
 					score += 1
-		return score
+		return score - (TOTAL_MOVES - round)
 
 	# count the final score of a finished game; used when few moves remain to explore the whole tree
 	def checkWinner(self, state):
-		score = self.countScore(state)
+		score = self.countScore(state, TOTAL_MOVES)
 		if score > TOTAL_MOVES - score:
 			return float('inf')
 		else:
@@ -57,20 +57,20 @@ class SmartAI(AI):
 		pivotTurn = 10
 
 		if TOTAL_MOVES - node.round < pivotTurn:
-			return self.countScore(node.state)
+			return self.countScore(node.state, node.round)
 
 		score = 0
 
 		"""
 		valuations of various cell types
-		c   ceb e   e   e   e   ceb c
+		cr  ceb e   e   e   e   ceb cr
 		ceb ccb ecb ecb ecb ecb ccb ceb
 		e   ecb c   c   c   c   ecb e
 		e   ecb c   c   c   c   ecb e
 		e   ecb c   c   c   c   ecb e
 		e   ecb c   c   c   c   ecb e
 		ceb ccb ecb ecb ecb ecb ccb ceb
-		c   ceb e   e   e   e   ceb c
+		cr  ceb e   e   e   e   ceb cr
 		"""
 
 		corner = 5
