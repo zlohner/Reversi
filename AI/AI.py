@@ -5,6 +5,7 @@ class AI(object):
 		self.me = me
 		self.opp = 1 if me == 2 else 2
 
+	# check if player can play on a square based on given direction (combination of dx and dy)
 	def checkDirection(self, state, row, col, dx, dy, player):
 		opp = 1 if player == 2 else 2
 		sequence = []
@@ -28,6 +29,7 @@ class AI(object):
 
 		return False
 
+	# check all directions
 	def couldBe(self, state, row, col, player):
 		for dx in range(-1, 2):
 			for dy in range(-1, 2):
@@ -39,7 +41,7 @@ class AI(object):
 
 		return False
 
-	# generates the set of valid moves for the player; returns a list of valid moves (validMoves)
+	# generates the set of valid moves for the player
 	def getValidMoves(self, state, round, player):
 		validMoves = []
 
@@ -60,6 +62,7 @@ class AI(object):
 							validMoves.append([i, j])
 		return validMoves
 
+	# simulate the new state after making a move at (row, col)
 	def simMove(self, state, round, player, row, col):
 		newState = [[state[x][y] for y in range(8)] for x in range(8)]
 

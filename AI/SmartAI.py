@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-import random
-
 from AI import AI
 
 TOTAL_SLOTS = 64
 
+# class to represent a state and its relevant information
+# TODO: implement memoization of previously computed nodes
 class Node(object):
 	def __init__(self, state, round, row, col, depth=2, max=True, alpha=-float('inf'), beta=float('inf')):
 		self.state = state
@@ -22,6 +22,7 @@ class SmartAI(AI):
 	def __init__(self, me):
 		AI.__init__(self, me)
 
+	# count the final score of a finished game; used when few moves remain to explore the whole tree
 	def countScore(self, state):
 		score = 0
 		for row in state:
@@ -33,6 +34,7 @@ class SmartAI(AI):
 		else:
 			return -float('inf')
 
+	# sum a given score over the cross product of two ranges (used to shortcut valuation of cells in heuristic)
 	def scoreRange(self, state, r1, r2, points):
 		score = 0
 		for i in r1:
@@ -43,7 +45,8 @@ class SmartAI(AI):
 					score -= points
 		return score
 
-	# maximize moves available to me, minimize moves available to opponent
+	# evaluate how good a given board state is
+	# calculated on a zero-sum basis, positive is me, negative is opponent
 	def heuristic(self, node):
 		score = 0
 
@@ -76,6 +79,7 @@ class SmartAI(AI):
 		score += self.scoreRange(node.state, [1, 6], [0, 7], cornerEdgeBridge)
 		score += self.scoreRange(node.state, [1, 6], [1, 6], cornerCenterBridge)
 
+		# maximize moves available to me, minimize moves available to opponent
 		myMoves = len(self.getValidMoves(node.state, node.round, self.me))
 		oppMoves = len(self.getValidMoves(node.state, node.round, self.opp))
 		optionAdvantage = (myMoves - oppMoves)
@@ -83,6 +87,8 @@ class SmartAI(AI):
 
 		return score
 
+	# explore a node using minimax adversarial search with limited depth and a heuristic function
+	# TODO: implement alpha-beta pruning
 	def minimax(self, node):
 		if TOTAL_SLOTS - node.round == 0:
 			node.value = self.countScore(node.state)
@@ -135,6 +141,7 @@ class SmartAI(AI):
 				node.max = True
 				return self.minimax(node)
 
+	# get move (uses minimax)
 	def move(self, **kwargs):
 		state = kwargs['state']
 		round = kwargs['round']

@@ -10,7 +10,7 @@ from RandomAI import RandomAI
 
 END_TURN = -999
 
-state = [[0 for x in range(8)] for y in range(8)] # board; state[0][0] is the bottom left corner of the board (on the GUI)
+state = [[0 for x in range(8)] for y in range(8)]
 
 # establish a connection with the server
 def initClient(me, host):
@@ -61,7 +61,7 @@ def playGame(me, host, AI):
 # call: python client.py [ipaddress] [player_number] [AIType]
 #   ipaddress is the ipaddress on the computer the server was launched on.  Enter 'localhost' if it is on the same computer
 #   player_number is 1 (for the black player) and 2 (for the white player)
-#	AIType is the type of AI to use
+#	AIType is the type of AI to use (smart or random)
 if __name__ == '__main__':
 	me = int(sys.argv[2])
 	host = sys.argv[1]

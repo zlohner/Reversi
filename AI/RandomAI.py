@@ -8,8 +8,10 @@ class RandomAI(AI):
 	def __init__(self, me):
 		AI.__init__(self, me)
 
+	# get move
 	def move(self, **kwargs):
 		state = kwargs['state']
 		round = kwargs['round']
 		validMoves = self.getValidMoves(state, round, self.me)
+		# just choose a random valid move
 		return validMoves[random.randint(0,len(validMoves) - 1)]
