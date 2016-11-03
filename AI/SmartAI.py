@@ -140,7 +140,7 @@ class SmartAI(AI):
 					node.max = False
 					return self.minimax(node)
 				else:
-					node.value = self.countScore(node.state)
+					node.value = self.countScore(node.state, node.round)
 					return node
 
 		else:
@@ -174,7 +174,7 @@ class SmartAI(AI):
 					node.max = True
 					return self.minimax(node)
 				else:
-					node.value = self.countScore(node.state)
+					node.value = self.countScore(node.state, node.round)
 					return node
 
 	# get move (uses minimax)
