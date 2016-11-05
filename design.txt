@@ -1,24 +1,13 @@
 Heuristic <- Zac ✔︎
-	valuations of various cell types
-	cr  ceb e   e   e   e   ceb cr
-	ceb ccb ecb ecb ecb ecb ccb ceb
-	e   ecb c   c   c   c   ecb e
-	e   ecb c   c   c   c   ecb e
-	e   ecb c   c   c   c   ecb e
-	e   ecb c   c   c   c   ecb e
-	ceb ccb ecb ecb ecb ecb ccb ceb
-	cr  ceb e   e   e   e   ceb cr
 
-	current values:
-		corner = 5
-		edge = 3
-		center = 2
-		edgeCenterBridge= -1
-		cornerEdgeBridge = -3
-		cornerCenterBridge= -5
+	Heuristic now based on
 
 	1) compute the sum of cells held for self/opponent and multiply by value for that cell
 	2) add the difference between available moves to each player
+
+	thoughts:
+		lower value for edge squares next to edge squares that have already been taken, can "steal" an edge by leaving space
+		higher value for "inner" squares (those that are fully surrounded)
 
 Algorithm
 	Alphabeta pruning core - can be seeded with previous results <- Zac ✔︎

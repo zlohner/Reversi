@@ -5,12 +5,6 @@ import subprocess
 import sys
 import time
 
-
-
-def noop():
-	# harder to do nothing in python than it should be
-	a = 1
-
 if __name__ == '__main__':
 	if len(sys.argv) < 4:
 		print 'USAGE: python test.py [match_settings] [player_one] [player_two]'
@@ -78,15 +72,15 @@ if __name__ == '__main__':
 		try:
 			serverp.terminate()
 		except Exception as e:
-			noop()
+			pass
 		try:
 			onep.terminate()
 		except Exception as e:
-			noop()
+			pass
 		try:
 			twop.terminate()
 		except Exception as e:
-			noop()
+			pass
 
 		time.sleep(3)	# make sure the server releases the port
 
