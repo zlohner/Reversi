@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import time
-import math
 
 from AI import AI
 
@@ -21,123 +20,233 @@ class Node(object):
 		self.alpha = alpha
 		self.beta = beta
 
+# sum a given score over a set of squares (used to shortcut valuation of squares in heuristic)
+def scoreRange(state, squares, player, points):
+	return sum([points for (i, j) in squares if state[i][j] == player])
+
+# count the current score for a player
+def countScore(state, player):
+	score = 0
+	for row in state:
+		for slot in row:
+			if slot == player:
+				score += 1
+	return score
+
+# count the final score of a finished game; used when few moves remain to explore the whole tree
+def winner(state):
+	score = countScore(state, TOTAL_MOVES)
+	if score > TOTAL_MOVES - score:
+		return float('inf')
+	else:
+		return -float('inf')
+
+# get the neighbors of a position within the board
+def neighbors(x, y):
+	return [(i, j) for i in range(x - 1, x + 2) for j in range(y - 1, y + 2) if i > 0 and i < 8 and j > 0 and j < 8]
+
+# check whether a square is surrounded
+def surrounded(state, x, y):
+	for (i, j) in neighbors(x,y):
+		if state[i][j] == 0:
+			return False
+	return True
+
+# the cross product of two ranges
+def cross(l1, l2):
+	return [(i,j) for j in l2 for i in l1]
+
+# check whether a position is stable
+def stable(mem, state, x, y, player=None):
+	if (x, y) not in mem:
+		mem[(x, y)] = -1 # don't revisit a square
+		if x < 0 or x >= 8 or y < 0 or y >= 8:
+			mem[(x, y)] = player
+		else:
+			if player == None:
+				player = state[x][y]
+				if player == 0:
+					mem[(x, y)] = 0
+					return mem[(x, y)]
+
+			if state[x][y] == player:
+				N = stable(mem, state, x - 1, y, player) == player
+				E = stable(mem, state, x, y + 1, player) == player
+				S = stable(mem, state, x + 1, y, player) == player
+				W = stable(mem, state, x, y - 1, player) == player
+				NW = stable(mem, state, x - 1, y - 1, player) == player
+				NE = stable(mem, state, x - 1, y + 1, player) == player
+				SE = stable(mem, state, x + 1, y + 1, player) == player
+				SW = stable(mem, state, x + 1, y - 1, player) == player
+
+				if (W and NW and N) or (N and NE and E) or (E and SE and S) or (S and SW and W):
+					mem[(x, y)] = player
+				else:
+					mem[(x, y)] = 0
+			else:
+				mem[(x, y)] = 0
+
+	return mem[(x, y)]
+
+# check whether a position is unstable
+def unstable(mem, state, x, y, direction, player=None):
+	if (x, y, direction) not in mem:
+		if x < 0 or x >= 8 or y < 0 or y >= 8:
+			mem[(x, y, direction)] = 0
+		else:
+			if player == None:
+				player = state[x][y]
+				if player == 0:
+					mem[(x, y, direction)] = 0
+					return mem[(x, y, direction)]
+			if state[x][y] == player:
+				if direction == (0, 0):
+					isUnstable = False
+					for (i, j) in neighbors(x, y):
+						if state[i][j] == 0:
+							dx = x - i
+							dy = y - j
+							isUnstable = isUnstable or unstable(mem, state, x - dx, y - dy, (-dx, -dy), player) == player
+					if isUnstable:
+						mem[(x, y, direction)] = player
+					else:
+						mem[(x, y, direction)] = 0
+				else:
+					mem[(x, y, direction)] = unstable(mem, state, x + direction[0], y + direction[1], direction, player)
+			else:
+				if state[x][y] == 0:
+					mem[(x, y, direction)] = 0
+				else:
+					mem[(x, y, direction)] = player
+	return mem[(x, y, direction)]
+
 class SmartAI(AI):
 	def __init__(self, me):
 		AI.__init__(self, me)
 
-	# count my current score
-	def countScore(self, state, round):
-		score = 0
-		for row in state:
-			for slot in row:
-				if slot == self.me:
-					score += 1
-		return score - (TOTAL_MOVES - round)
-
-	# count the final score of a finished game; used when few moves remain to explore the whole tree
-	def winner(self, state):
-		score = self.countScore(state, TOTAL_MOVES)
-		if score > TOTAL_MOVES - score:
-			return float('inf')
-		else:
-			return -float('inf')
-
-	# sum a given score over the cross product of two ranges (used to shortcut valuation of cells in heuristic)
-	def scoreRange(self, state, cells, points):
-		score = 0
-		for (i,j) in cells:
-			if state[i][j] == self.me:
-				score += points
-			elif state[i][j] == self.opp:
-				score -= points
-		return score
-
-	def neighbors(self, x, y):
-		neighbors = []
-		for i in range(x - 1, x + 2):
-			for j in range(y - 1, y + 2):
-				if x > 0 and x < 8 and y > 0 and y < 8:
-					neighbors.append((x,y))
-		return neighbors
-
-	def surrounded(self, state, x, y):
-		neighbors = self.neighbors(x,y)
-		for i in neighbors:
-			if i == 0:
-				return False
-		return True
-
-	def cross(self, r1, r2):
-		return [(i,j) for j in r2 for i in r1]
-
-	def edgeEval(self, state, edge, row, col, points):
-		value = 0
-		owner = 0
-		for (i, j) in edge:
-			if state[i][j] == 0:
-				pass
-			else:
-				if owner == 0:
-					owner = state[i][j]
-				else:
-					owner = -1
-
-		if owner == self.me:
-			value = points
-		elif owner == self.opp:
-			value = -points
-
-		if (row, col) in edge:
-			value = 2 * value
-		return value
-
-	# evaluate how good a given board state is
+	# evaluate a given board state
 	# calculated on a zero-sum basis, positive is me, negative is opponent
 	def heuristic(self, node):
-		# at a certain turn, just evaluate the current score
+
+		# after the pivot turn, just evaluate the current score
 		pivotTurn = 10
-		corner = 5
-		edge = 4
-		surrounded = 1
-		bridge = -1
-		curb = -3
-
 		if TOTAL_MOVES - node.round < pivotTurn:
-			return self.countScore(node.state, node.round)
+			myScore = countScore(node.state, self.me)
+			oppScore = countScore(node.state, self.opp)
+			return 2.0 * (float(myScore) / (myScore + oppScore) - 0.5)
 
-		score = 0
+		# positional score
+		r = 20 # corner
+		c = -3 # c-squares (between corner and edge)
+		x = -7 # x-squares (between center and corner)
+		a = 11 # a-squares (outer two edge squares)
+		b = 8 # b-squares (inner two edge squares)
+		s = 3 # s-squares (corners of inner 4 x 4)
 
-		score += self.scoreRange(node.state, self.cross([0, 7], [0, 7]), corner)
+		myPosition = 0
+		myPosition += scoreRange(node.state, cross([0, 7], [0, 7]), self.me, r)
+		myPosition += scoreRange(node.state, cross([1, 6], [0, 7]), self.me, c)
+		myPosition += scoreRange(node.state, cross([0, 7], [1, 6]), self.me, c)
+		myPosition += scoreRange(node.state, cross([1, 6], [1, 6]), self.me, x)
+		myPosition += scoreRange(node.state, cross([0, 7], [2, 5]), self.me, a)
+		myPosition += scoreRange(node.state, cross([2, 5], [0, 7]), self.me, a)
+		myPosition += scoreRange(node.state, cross([0, 7], [3, 4]), self.me, b)
+		myPosition += scoreRange(node.state, cross([3, 4], [0, 7]), self.me, b)
+		myPosition += scoreRange(node.state, cross([2, 5], [2, 5]), self.me, s)
 
-		score += self.edgeEval(node.state, self.cross([0],range(1,7)), node.row, node.col, edge)
-		score += self.edgeEval(node.state, self.cross([7],range(1,7)), node.row, node.col, edge)
-		score += self.edgeEval(node.state, self.cross(range(1,7),[0]), node.row, node.col, edge)
-		score += self.edgeEval(node.state, self.cross(range(1,7),[7]), node.row, node.col, edge)
+		oppPosition = 0
+		oppPosition += scoreRange(node.state, cross([0, 7], [0, 7]), self.opp, r)
+		oppPosition += scoreRange(node.state, cross([1, 6], [0, 7]), self.opp, c)
+		oppPosition += scoreRange(node.state, cross([0, 7], [1, 6]), self.opp, c)
+		oppPosition += scoreRange(node.state, cross([1, 6], [1, 6]), self.opp, x)
+		oppPosition += scoreRange(node.state, cross([0, 7], [2, 5]), self.opp, a)
+		oppPosition += scoreRange(node.state, cross([2, 5], [0, 7]), self.opp, a)
+		oppPosition += scoreRange(node.state, cross([0, 7], [3, 4]), self.opp, b)
+		oppPosition += scoreRange(node.state, cross([3, 4], [0, 7]), self.opp, b)
+		oppPosition += scoreRange(node.state, cross([2, 5], [2, 5]), self.opp, s)
 
-		for (i, j) in self.cross([0, 7], [0, 7]):
-			if node.state[i][j] == 0:
-				if (node.row, node.col) in self.neighbors(i, j):
-					score += curb
+		if myPosition + oppPosition == 0:
+			positionalScore = 0
+		else:
+			positionalScore = 2.0 * (float(myPosition) / (myPosition + oppPosition) - 0.5)
 
-		for (i, j) in self.cross(range(2, 6), range(2, 6)):
-			if self.surrounded(node.state, i, j):
-				score += surrounded
+		# frontier discs (discs with at least one open neighbor)
+		myFrontier = 0
+		oppFrontier = 0
+		for (i, j) in cross(range(0, 8), range(0, 8)):
+			if not surrounded(node.state, i, j):
+				if node.state[i][j] == self.me:
+					myFrontier += 1
+				elif node.state[i][j] == self.opp:
+					oppFrontier += 1
 
-		score += self.scoreRange(node.state, self.cross([1, 6], range(2, 6)), bridge)
-		score += self.scoreRange(node.state, self.cross(range(2, 6), [1, 6]), bridge)
+		if myFrontier + oppFrontier == 0:
+			frontierScore = 0
+		else:
+			frontierScore = 2.0 * (float(myFrontier) / (myFrontier + oppFrontier) - 0.5)
 
-		# maximize moves available to me, minimize moves available to opponent
-		myMoves = len(self.getValidMoves(node.state, node.round, self.me))
-		oppMoves = len(self.getValidMoves(node.state, node.round, self.opp))
-		optionAdvantage = (myMoves - oppMoves)
-		score += optionAdvantage
+		# mobility, calculated relatively to opponent with value from -1 to 1
+		myMobility = len(self.getValidMoves(node.state, node.round, self.me))
+		oppMobility = len(self.getValidMoves(node.state, node.round, self.opp))
 
-		return score
+		if myMobility + oppMobility == 0:
+			mobilityScore = 0
+		else:
+			mobilityScore = 2.0 * (float(myMobility) / (myMobility + oppMobility) - 0.5)
+
+		# stability
+		myStability = 0
+		oppStability = 0
+		stableMem = {}
+		unstableMem = {}
+
+		# stable discs cannot be flipped
+		# unstable discs can be flipped this turn
+		# semi-stable discs can be flipped, but not this turn
+		for (i, j) in cross(range(0, 8), range(0, 8)):
+
+			stablePlayer = stable(stableMem, node.state, i, j)
+			unstablePlayer = unstable(unstableMem, node.state, i, j, (0, 0))
+
+			if stablePlayer != 0 and unstablePlayer != 0:
+				print 'ERROR: stable = %d, unstable = %d' % (stablePlayer, unstablePlayer)
+				for row in node.state:
+					print row
+				print (i, j)
+				time.sleep(1)
+
+			if stablePlayer == self.me:
+				myStability += 1
+			elif unstablePlayer == self.me:
+				myStability -= 1
+
+			if stablePlayer == self.opp:
+				oppStability += 1
+			elif unstablePlayer == self.opp:
+				oppStability -= 1
+
+		if myStability + oppStability == 0:
+			stabilityScore = 0
+		else:
+			stabilityScore = 2.0 * (float(myStability) / (myStability + oppStability) - 0.5)
+
+		# print 'position: %.2f frontier: %.2f mobility: %.2f stability: %.2f' % (positionalScore, frontierScore, mobilityScore, stabilityScore)
+
+		positionalWeight = 10
+		frontierWeight = 10
+		mobilityWeight = 10
+		stabilityWeight = 10
+
+		return \
+			positionalScore * positionalWeight + \
+			frontierScore * frontierWeight + \
+			mobilityScore * mobilityWeight + \
+			stabilityScore * stabilityWeight
 
 	# explore a node using minimax adversarial search with limited depth and a heuristic function
 	def minimax(self, node):
 		if TOTAL_MOVES - node.round == 0:
-			node.value = self.winner(node.state)
+			node.value = winner(node.state)
 			return node
 
 		if node.depth == 0:
@@ -176,7 +285,7 @@ class SmartAI(AI):
 					node.max = False
 					return self.minimax(node)
 				else:
-					node.value = self.winner(node.state)
+					node.value = winner(node.state)
 					return node
 
 		else:
@@ -210,12 +319,12 @@ class SmartAI(AI):
 					node.max = True
 					return self.minimax(node)
 				else:
-					node.value = self.winner(node.state)
+					node.value = winner(node.state)
 					return node
 
-	# maths
+	# increase time toward the midgame, decrease toward the endgame
 	def distribution(self, round):
-		return 2 - abs((32.0 - round) / 16.0)
+		return max(2 - abs((32.0 - (round - 2)) / 16.0), 0)
 
 	# get move (uses minimax)
 	def move(self, **kwargs):
@@ -230,19 +339,27 @@ class SmartAI(AI):
 		myTimePerTurn *= self.distribution(round) # spend shorter in the beginning and endgame, longer in the midgame
 		print 'I can spend %f this turn' % (myTimePerTurn)
 
-		estimated_factor = 2 # ie, it takes us 2 times as long to go one more depth
+		estimated_factor = 2 # i.e. it takes us 2 times as long to go one more depth
 		depth = 0
 		while depth < TOTAL_MOVES - round:
 			depth += 1
 			moveNode = self.minimax(Node(state, round, depth=depth))
 
-
 			elapsed = time.clock() - startTime
-			if elapsed * estimated_factor > myTimePerTurn:
+			if elapsed * estimated_factor + elapsed > myTimePerTurn:
 				break
+
 		if depth == TOTAL_MOVES - round:
 			print 'Exhausted the entire tree in %f seconds' % (elapsed)
 		else:
 			print 'Calling it quits! Got to depth %d in %f seconds' % (depth, elapsed)
+
 		print 'Move Heuristic Value: %s' % moveNode.value
+
+		if moveNode.value > 0:
+			print 'I\'m winning!'
+		else:
+			print 'I\'m losing :('
+
+		print ''
 		return [moveNode.row, moveNode.col]
