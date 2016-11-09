@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import heapq
 import time
 
 from AI import AI
@@ -88,58 +89,47 @@ def stable(mem, state, x, y, player=None):
 
 	return mem[(x, y)]
 
-# check whether a position is unstable
-def unstable(mem, state, x, y, direction, player=None):
-	if (x, y, direction) not in mem:
-		if x < 0 or x >= 8 or y < 0 or y >= 8:
-			mem[(x, y, direction)] = 0
-		else:
-			if player == None:
-				player = state[x][y]
-				if player == 0:
-					mem[(x, y, direction)] = 0
-					return mem[(x, y, direction)]
-			if state[x][y] == player:
-				if direction == (0, 0):
-					isUnstable = False
-					for (i, j) in neighbors(x, y):
-						if state[i][j] == 0:
-							dx = x - i
-							dy = y - j
-							isUnstable = isUnstable or unstable(mem, state, x - dx, y - dy, (-dx, -dy), player) == player
-					if isUnstable:
-						mem[(x, y, direction)] = player
-					else:
-						mem[(x, y, direction)] = 0
-				else:
-					mem[(x, y, direction)] = unstable(mem, state, x + direction[0], y + direction[1], direction, player)
-			else:
-				if state[x][y] == 0:
-					mem[(x, y, direction)] = 0
-				else:
-					mem[(x, y, direction)] = player
-	return mem[(x, y, direction)]
-
 class SmartAI(AI):
 	def __init__(self, me, config=None):
 		AI.__init__(self, me)
 
 		self.config = {
 			'timeFactor': 2,
-			'positionalWeight': 10,
-			'frontierWeight': 10,
-			'mobilityWeight': 10,
-			'stabilityWeight': 10,
-			'r': 20,	# corner
-			'c': -3,	# c-squares (between corner and edge)
-			'x': -7,	# x-squares (between center and corner)
-			'a': 11,	# a-squares (outer two edge squares)
-			'b': 8,	# b-squares (inner two edge squares)
-			's': 3	# s-squares (corners of inner 4x4)
+			'positionalWeight': 7.0,
+			'frontierWeight': 2.0,
+			'mobilityWeight': 8.0,
+			'stabilityWeight': 2.0,
+			'r': 0.8, # corner
+			'c': -0.2, # c-squares (between corner and edge)
+			'x': -0.8, # x-squares (between center and corner)
+			'a': 0.6, # a-squares (outer two edge squares)
+			'b': 0.5, # b-squares (inner two edge squares)
+			'm': 0.0, # m-squares (middle 4x4)
+			't': -0.2 # t-squares (between middle 4x4 and edge)
 		}
 		if config != None:
 			for key, val in config.iteritems():
 				self.config[key] = val
+
+		# positional score
+		r = self.config['r'] # corner
+		c = self.config['c'] # c-squares (between corner and edge)
+		x = self.config['x'] # x-squares (between center and corner)
+		a = self.config['a'] # a-squares (outer two edge squares)
+		b = self.config['b'] # b-squares (inner two edge squares)
+		m = self.config['m'] # m-squares (middle 4x4)
+		t = self.config['t'] # t-squares (between middle 4x4 and edge)
+
+		self.matrix = [
+			[r, c, a, b, b, a, c, r],
+			[c, x, t, t, t, t, x, c],
+			[a, t, m, m, m, m, t, a],
+			[b, t, m, m, m, m, t, b],
+			[b, t, m, m, m, m, t, b],
+			[a, t, m, m, m, m, t, a],
+			[c, x, t, t, t, t, x, c],
+			[r, c, a, b, b, a, c, r]
+		]
 
 	# evaluate a given board state
 	# calculated on a zero-sum basis, positive is me, negative is opponent
@@ -152,40 +142,10 @@ class SmartAI(AI):
 			oppScore = countScore(node.state, self.opp)
 			return 2.0 * (float(myScore) / (myScore + oppScore) - 0.5)
 
-		# positional score
-		r = self.config['r'] # corner
-		c = self.config['c'] # c-squares (between corner and edge)
-		x = self.config['x'] # x-squares (between center and corner)
-		a = self.config['a'] # a-squares (outer two edge squares)
-		b = self.config['b'] # b-squares (inner two edge squares)
-		s = self.config['s'] # s-squares (corners of inner 4 x 4)
-
-		myPosition = 0
-		myPosition += scoreRange(node.state, cross([0, 7], [0, 7]), self.me, r)
-		myPosition += scoreRange(node.state, cross([1, 6], [0, 7]), self.me, c)
-		myPosition += scoreRange(node.state, cross([0, 7], [1, 6]), self.me, c)
-		myPosition += scoreRange(node.state, cross([1, 6], [1, 6]), self.me, x)
-		myPosition += scoreRange(node.state, cross([0, 7], [2, 5]), self.me, a)
-		myPosition += scoreRange(node.state, cross([2, 5], [0, 7]), self.me, a)
-		myPosition += scoreRange(node.state, cross([0, 7], [3, 4]), self.me, b)
-		myPosition += scoreRange(node.state, cross([3, 4], [0, 7]), self.me, b)
-		myPosition += scoreRange(node.state, cross([2, 5], [2, 5]), self.me, s)
-
-		oppPosition = 0
-		oppPosition += scoreRange(node.state, cross([0, 7], [0, 7]), self.opp, r)
-		oppPosition += scoreRange(node.state, cross([1, 6], [0, 7]), self.opp, c)
-		oppPosition += scoreRange(node.state, cross([0, 7], [1, 6]), self.opp, c)
-		oppPosition += scoreRange(node.state, cross([1, 6], [1, 6]), self.opp, x)
-		oppPosition += scoreRange(node.state, cross([0, 7], [2, 5]), self.opp, a)
-		oppPosition += scoreRange(node.state, cross([2, 5], [0, 7]), self.opp, a)
-		oppPosition += scoreRange(node.state, cross([0, 7], [3, 4]), self.opp, b)
-		oppPosition += scoreRange(node.state, cross([3, 4], [0, 7]), self.opp, b)
-		oppPosition += scoreRange(node.state, cross([2, 5], [2, 5]), self.opp, s)
-
-		if myPosition + oppPosition == 0:
-			positionalScore = 0
-		else:
-			positionalScore = 2.0 * (float(myPosition) / (myPosition + oppPosition) - 0.5)
+		# positional score (see how good the current move is)
+		positionalScore = self.matrix[node.row][node.col]
+		if not node.max:
+			positionalScore *= -1
 
 		# frontier discs (discs with at least one open neighbor)
 		myFrontier = 0
@@ -200,7 +160,7 @@ class SmartAI(AI):
 		if myFrontier + oppFrontier == 0:
 			frontierScore = 0
 		else:
-			frontierScore = 2.0 * (float(myFrontier) / (myFrontier + oppFrontier) - 0.5)
+			frontierScore = -2.0 * (float(myFrontier) / (myFrontier + oppFrontier) - 0.5)
 
 		# mobility, calculated relatively to opponent with value from -1 to 1
 		myMobility = len(self.getValidMoves(node.state, node.round, self.me))
@@ -214,46 +174,35 @@ class SmartAI(AI):
 		# stability
 		myStability = 0
 		oppStability = 0
-		stableMem = {}
-		unstableMem = {}
+		mem = {}
 
 		# stable discs cannot be flipped
-		# unstable discs can be flipped this turn
-		# semi-stable discs can be flipped, but not this turn
 		for (i, j) in cross(range(0, 8), range(0, 8)):
-
-			stablePlayer = stable(stableMem, node.state, i, j)
-			unstablePlayer = unstable(unstableMem, node.state, i, j, (0, 0))
-
-			if stablePlayer != 0 and unstablePlayer != 0:
-				print 'ERROR: stable = %d, unstable = %d' % (stablePlayer, unstablePlayer)
-				for row in node.state:
-					print row
-				print (i, j)
-				time.sleep(1)
-
+			stablePlayer = stable(mem, node.state, i, j)
 			if stablePlayer == self.me:
 				myStability += 1
-			elif unstablePlayer == self.me:
-				myStability -= 1
-
 			if stablePlayer == self.opp:
 				oppStability += 1
-			elif unstablePlayer == self.opp:
-				oppStability -= 1
 
 		if myStability + oppStability == 0:
 			stabilityScore = 0
 		else:
 			stabilityScore = 2.0 * (float(myStability) / (myStability + oppStability) - 0.5)
 
-		# print 'position: %.2f frontier: %.2f mobility: %.2f stability: %.2f' % (positionalScore, frontierScore, mobilityScore, stabilityScore)
+		positionalWeight = self.config['positionalWeight']
+		frontierWeight = self.config['frontierWeight']
+		mobilityWeight = self.config['mobilityWeight']
+		stabilityWeight = self.config['stabilityWeight']
 
-		return \
-			positionalScore * self.config['positionalWeight'] + \
-			frontierScore * self.config['frontierWeight'] + \
-			mobilityScore * self.config['mobilityWeight'] + \
-			stabilityScore * self.config['stabilityWeight']
+		score = \
+			positionalScore * positionalWeight + \
+			frontierScore * frontierWeight + \
+			mobilityScore * mobilityWeight + \
+			stabilityScore * stabilityWeight
+
+		score /= (positionalWeight + frontierWeight + mobilityWeight + stabilityWeight)
+
+		return score
 
 	# explore a node using minimax adversarial search with limited depth and a heuristic function
 	def minimax(self, node):
@@ -268,6 +217,7 @@ class SmartAI(AI):
 		children = []
 		if node.max:
 			validMoves = self.getValidMoves(node.state, node.round, self.me)
+
 			for move in validMoves:
 				newState = self.simMove(node.state, node.round, self.me, move[0], move[1])
 				child = Node(
@@ -280,15 +230,21 @@ class SmartAI(AI):
 					alpha=node.alpha,
 					beta=node.beta
 				)
-				child.value = self.minimax(child).value
-				children.append(child)
+				children.append((-self.heuristic(child), child))
 
+			best = None
+			heapq.heapify(children)
+
+			while len(children) > 0:
+				child = heapq.heappop(children)[1]
+				child.value = self.minimax(child).value
+				if best == None or child.value > best.value:
+					best = child
 				node.alpha = max(node.alpha, child.value)
 				if node.beta <= node.alpha:
 					break
 
 			if len(validMoves) > 0:
-				best = max(children, key=lambda node: node.value)
 				node.value = best.value
 				return best
 			else:
@@ -314,15 +270,21 @@ class SmartAI(AI):
 					alpha=node.alpha,
 					beta=node.beta
 				)
-				child.value = self.minimax(child).value
-				children.append(child)
+				children.append((self.heuristic(child), child))
 
+			best = None
+			heapq.heapify(children)
+
+			while len(children) > 0:
+				child = heapq.heappop(children)[1]
+				child.value = self.minimax(child).value
+				if best == None or child.value < best.value:
+					best = child
 				node.beta = min(node.beta, child.value)
 				if node.beta <= node.alpha:
 					break
 
 			if len(validMoves) > 0:
-				best = min(children, key=lambda node: node.value)
 				node.value = best.value
 				return best
 			else:
@@ -351,14 +313,14 @@ class SmartAI(AI):
 		myTimePerTurn *= self.distribution(round) # spend shorter in the beginning and endgame, longer in the midgame
 		print 'I can spend %f this turn' % (myTimePerTurn)
 
-		estimated_factor = self.config['timeFactor'] # i.e. it takes us 2 times as long to go one more depth
+		estimated_factor = self.config['timeFactor'] # i.e. it takes us x times as long to go one more depth
 		depth = 0
 		while depth < TOTAL_MOVES - round:
 			depth += 1
 			moveNode = self.minimax(Node(state, round, depth=depth))
 
 			elapsed = time.clock() - startTime
-			if elapsed * estimated_factor + elapsed > myTimePerTurn:
+			if elapsed * estimated_factor > myTimePerTurn:
 				break
 
 		if depth == TOTAL_MOVES - round:
@@ -367,11 +329,6 @@ class SmartAI(AI):
 			print 'Calling it quits! Got to depth %d in %f seconds' % (depth, elapsed)
 
 		print 'Move Heuristic Value: %s' % moveNode.value
-
-		if moveNode.value > 0:
-			print 'I\'m winning!'
-		else:
-			print 'I\'m losing :('
 
 		print ''
 		return [moveNode.row, moveNode.col]
