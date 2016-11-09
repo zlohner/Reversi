@@ -3,6 +3,7 @@
 import sys
 import socket
 import time
+import json
 from random import randint
 
 from SmartAI import SmartAI
@@ -83,7 +84,21 @@ if __name__ == '__main__':
 
 	if AIType == 'smart':
 		AI = SmartAI(me)
-	else:
+	elif AIType == 'random' or not len(AIType):
 		AI = RandomAI(me)
+	else:
+		with open(AIType) as file:
+			config = json.load(file)
+		if not 'ai' in config:
+			print 'No AI type specified'
+			print config
+			sys.exit(-999)
+		if config['ai'] == 'smart':
+			AI = SmartAI(me, config)
+		elif config['ai'] == 'random':
+			AI = RandomAI(me, config)
+		else:
+			print 'Unknown AI type'
+			sys.exit(-999)
 
 	sys.exit(playGame(me, host, AI))

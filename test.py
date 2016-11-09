@@ -12,10 +12,10 @@ if __name__ == '__main__':
 
 	with open('config/match/%s.json' % (sys.argv[1])) as file:
 		match_settings = json.load(file)
-	with open('config/player/%s.json' % (sys.argv[2])) as file:
-		player_one = json.load(file)
-	with open('config/player/%s.json' % (sys.argv[3])) as file:
-		player_two = json.load(file)
+	#with open('config/player/%s.json' % (sys.argv[2])) as file:
+	#	player_one = json.load(file)
+	#with open('config/player/%s.json' % (sys.argv[3])) as file:
+	#	player_two = json.load(file)
 
 	err = 0
 	one_wins = 0
@@ -25,9 +25,9 @@ if __name__ == '__main__':
 
 		serverp = subprocess.Popen(('java', 'Reversi', '%d' % match_settings['timelimit']), cwd='Server')
 		time.sleep(3)	# make sure the server has bound the port before anyone connects
-		onep = subprocess.Popen(('python', 'client.py', 'localhost', '1', player_one['ai']), cwd='AI')
+		onep = subprocess.Popen(('python', 'client.py', 'localhost', '1', '../config/player/%s.json'%(sys.argv[2])), cwd='AI')
 		time.sleep(1)	# don't try to connect at the same time
-		twop = subprocess.Popen(('python', 'client.py', 'localhost', '2', player_two['ai']), cwd='AI')
+		twop = subprocess.Popen(('python', 'client.py', 'localhost', '2', '../config/player/%s.json'%(sys.argv[3])), cwd='AI')
 
 		while 1:
 			time.sleep(1)

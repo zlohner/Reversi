@@ -5,8 +5,9 @@ import random
 from AI import AI
 
 class RandomAI(AI):
-	def __init__(self, me):
+	def __init__(self, me, config):
 		AI.__init__(self, me)
+		# we don't actually use a config, at least for now
 
 	# get move
 	def move(self, **kwargs):

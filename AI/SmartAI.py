@@ -121,8 +121,25 @@ def unstable(mem, state, x, y, direction, player=None):
 	return mem[(x, y, direction)]
 
 class SmartAI(AI):
-	def __init__(self, me):
+	def __init__(self, me, config=None):
 		AI.__init__(self, me)
+
+		self.config = {
+			'timeFactor': 2,
+			'positionalWeight': 10,
+			'frontierWeight': 10,
+			'mobilityWeight': 10,
+			'stabilityWeight': 10,
+			'r': 20,	# corner
+			'c': -3,	# c-squares (between corner and edge)
+			'x': -7,	# x-squares (between center and corner)
+			'a': 11,	# a-squares (outer two edge squares)
+			'b': 8,	# b-squares (inner two edge squares)
+			's': 3	# s-squares (corners of inner 4x4)
+		}
+		if config != None:
+			for key, val in config.iteritems():
+				self.config[key] = val
 
 	# evaluate a given board state
 	# calculated on a zero-sum basis, positive is me, negative is opponent
@@ -136,12 +153,12 @@ class SmartAI(AI):
 			return 2.0 * (float(myScore) / (myScore + oppScore) - 0.5)
 
 		# positional score
-		r = 20 # corner
-		c = -3 # c-squares (between corner and edge)
-		x = -7 # x-squares (between center and corner)
-		a = 11 # a-squares (outer two edge squares)
-		b = 8 # b-squares (inner two edge squares)
-		s = 3 # s-squares (corners of inner 4 x 4)
+		r = self.config['r'] # corner
+		c = self.config['c'] # c-squares (between corner and edge)
+		x = self.config['x'] # x-squares (between center and corner)
+		a = self.config['a'] # a-squares (outer two edge squares)
+		b = self.config['b'] # b-squares (inner two edge squares)
+		s = self.config['s'] # s-squares (corners of inner 4 x 4)
 
 		myPosition = 0
 		myPosition += scoreRange(node.state, cross([0, 7], [0, 7]), self.me, r)
@@ -232,16 +249,11 @@ class SmartAI(AI):
 
 		# print 'position: %.2f frontier: %.2f mobility: %.2f stability: %.2f' % (positionalScore, frontierScore, mobilityScore, stabilityScore)
 
-		positionalWeight = 10
-		frontierWeight = 10
-		mobilityWeight = 10
-		stabilityWeight = 10
-
 		return \
-			positionalScore * positionalWeight + \
-			frontierScore * frontierWeight + \
-			mobilityScore * mobilityWeight + \
-			stabilityScore * stabilityWeight
+			positionalScore * self.config['positionalWeight'] + \
+			frontierScore * self.config['frontierWeight'] + \
+			mobilityScore * self.config['mobilityWeight'] + \
+			stabilityScore * self.config['stabilityWeight']
 
 	# explore a node using minimax adversarial search with limited depth and a heuristic function
 	def minimax(self, node):
@@ -339,7 +351,7 @@ class SmartAI(AI):
 		myTimePerTurn *= self.distribution(round) # spend shorter in the beginning and endgame, longer in the midgame
 		print 'I can spend %f this turn' % (myTimePerTurn)
 
-		estimated_factor = 2 # i.e. it takes us 2 times as long to go one more depth
+		estimated_factor = self.config['timeFactor'] # i.e. it takes us 2 times as long to go one more depth
 		depth = 0
 		while depth < TOTAL_MOVES - round:
 			depth += 1
