@@ -94,7 +94,7 @@ class SmartAI(AI):
 		AI.__init__(self, me)
 
 		self.config = {
-			'timeFactor': 2,
+			'timeFactor': 3,
 			'positionalWeight': 7.0,
 			'frontierWeight': 2.0,
 			'mobilityWeight': 8.0,
