@@ -44,7 +44,7 @@ def winner(state):
 
 # get the neighbors of a position within the board
 def neighbors(x, y):
-	return [(i, j) for i in range(x - 1, x + 2) for j in range(y - 1, y + 2) if i > 0 and i < 8 and j > 0 and j < 8]
+	return [(i, j) for i in range(x - 1, x + 2) for j in range(y - 1, y + 2) if i >= 0 and i < 8 and j >= 0 and j < 8 and (i!=x or j!=y)]
 
 # check whether a square is surrounded
 def surrounded(state, x, y):
@@ -94,7 +94,7 @@ class SmartAI(AI):
 		AI.__init__(self, me)
 
 		self.config = {
-			'timeFactor': 3,
+			'timeFactor': 4,
 			'positionalWeight': 7.0,
 			'frontierWeight': 2.0,
 			'mobilityWeight': 8.0,
