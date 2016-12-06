@@ -58,36 +58,64 @@ def cross(l1, l2):
 	return [(i,j) for j in l2 for i in l1]
 
 # check whether a position is stable
-def stable(mem, state, x, y, player=None):
-	if (x, y) not in mem:
-		mem[(x, y)] = -1 # don't revisit a square
-		if x < 0 or x >= 8 or y < 0 or y >= 8:
-			mem[(x, y)] = player
-		else:
-			if player == None:
-				player = state[x][y]
-				if player == 0:
-					mem[(x, y)] = 0
-					return mem[(x, y)]
+def stable(state, x, y):
+	# we are stable if either of these is true, for all four vectors (two orthogonal, two diagonal):
+		# A) we can travel in one of the two directions and hit a wall without hitting any empty or opponent squares
+		# B) we can travel in both directions without hitting any empty squares
 
-			if state[x][y] == player:
-				N = stable(mem, state, x - 1, y, player) == player
-				E = stable(mem, state, x, y + 1, player) == player
-				S = stable(mem, state, x + 1, y, player) == player
-				W = stable(mem, state, x, y - 1, player) == player
-				NW = stable(mem, state, x - 1, y - 1, player) == player
-				NE = stable(mem, state, x - 1, y + 1, player) == player
-				SE = stable(mem, state, x + 1, y + 1, player) == player
-				SW = stable(mem, state, x + 1, y - 1, player) == player
+	owner = state[x][y]
+	if owner == 0:
+		return 0
 
-				if (W and NW and N) or (N and NE and E) or (E and SE and S) or (S and SW and W):
-					mem[(x, y)] = player
-				else:
-					mem[(x, y)] = 0
-			else:
-				mem[(x, y)] = 0
+	for direction in [(1, 0), (0, 1), (1, 1), (1, -1)]:
+		if not stableOnAngle(state, x, y, direction, owner):
+			return 0
 
-	return mem[(x, y)]
+	return owner
+
+def stableOnAngle(state, x, y, angle, player):
+	forward = angle
+	backward = (-angle[0], -angle[1])
+	noEmpty = True
+
+	# forward ray
+	i = x
+	j = y
+	noProblems = True
+	while i >= 0 and i < 8 and j >= 0 and j < 8:
+		if state[i][j] == 0:
+			noEmpty = False
+			noProblems = False
+			break
+		elif state[i][j] != player:
+			noProblems = False
+			break
+		i += forward[0]
+		j += forward[1]
+	if noProblems:
+		return True
+
+	# backward ray
+	i = x
+	j = y
+	noProblems = True
+	while i >= 0 and i < 8 and j >= 0 and j < 8:
+		if state[i][j] == 0:
+			noEmpty = False
+			noProblems = False
+			break
+		elif state[i][j] != player:
+			noProblems = False
+			break
+		i += backward[0]
+		j += backward[1]
+	if noProblems:
+		return True
+
+	# finish up
+	if noEmpty:
+		return True
+	return False
 
 class SmartAI(AI):
 	def __init__(self, me, config=None):
@@ -143,9 +171,18 @@ class SmartAI(AI):
 			return 2.0 * (float(myScore) / (myScore + oppScore) - 0.5)
 
 		# positional score (see how good the current move is)
-		positionalScore = self.matrix[node.row][node.col]
-		if not node.max:
-			positionalScore *= -1
+		positionalScore = 0
+		for (i, j) in cross(range(0, 8), range(0, 8)):
+			if node.state[i][j] == self.me:
+				positionalScore += self.matrix[i][j]
+			elif node.state[i][j] == self.opp:
+				positionalScore -= self.matrix[i][j]
+		if node.max:
+			positionalScore += self.matrix[node.row][node.col]
+		else:
+			positionalScore -= self.matrix[node.row][node.col]
+		# find a way to fix this to an interval later, since it's not on [-1, 1] anymore
+		# also it certainly needs tweaking regardless
 
 		# frontier discs (discs with at least one open neighbor)
 		myFrontier = 0
@@ -160,7 +197,8 @@ class SmartAI(AI):
 		if myFrontier + oppFrontier == 0:
 			frontierScore = 0
 		else:
-			frontierScore = -2.0 * (float(myFrontier) / (myFrontier + oppFrontier) - 0.5)
+			# we want the opponent to have a big frontier
+			frontierScore = 2.0 * (float(oppFrontier) / (myFrontier + oppFrontier) - 0.5)
 
 		# mobility, calculated relatively to opponent with value from -1 to 1
 		myMobility = len(self.getValidMoves(node.state, node.round, self.me))
@@ -174,11 +212,10 @@ class SmartAI(AI):
 		# stability
 		myStability = 0
 		oppStability = 0
-		mem = {}
 
 		# stable discs cannot be flipped
 		for (i, j) in cross(range(0, 8), range(0, 8)):
-			stablePlayer = stable(mem, node.state, i, j)
+			stablePlayer = stable(node.state, i, j)
 			if stablePlayer == self.me:
 				myStability += 1
 			if stablePlayer == self.opp:
