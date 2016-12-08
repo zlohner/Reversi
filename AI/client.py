@@ -8,6 +8,7 @@ from random import randint
 
 from SmartAI import SmartAI
 from RandomAI import RandomAI
+from NewAI import NewAI
 
 END_TURN = -999
 
@@ -86,6 +87,8 @@ if __name__ == '__main__':
 		AI = SmartAI(me)
 	elif AIType == 'random' or not len(AIType):
 		AI = RandomAI(me)
+	elif AIType == 'new':
+		AI = NewAI(me)
 	else:
 		with open(AIType) as file:
 			config = json.load(file)
@@ -97,6 +100,8 @@ if __name__ == '__main__':
 			AI = SmartAI(me, config)
 		elif config['ai'] == 'random':
 			AI = RandomAI(me, config)
+		elif config['ai'] == 'new':
+			AI = NewAI(me, config)
 		else:
 			print 'Unknown AI type'
 			sys.exit(-999)
