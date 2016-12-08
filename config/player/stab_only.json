@@ -1,0 +1,7 @@
+{
+	"ai": "smart",
+	"positionalWeight": 0.0,
+	"frontierWeight": 0.0,
+	"mobilityWeight": 0.0,
+	"stabilityWeight": 1.0
+}

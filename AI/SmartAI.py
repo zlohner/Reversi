@@ -74,46 +74,27 @@ def stable(state, x, y):
 	return owner
 
 def stableOnAngle(state, x, y, angle, player):
-	forward = angle
-	backward = (-angle[0], -angle[1])
-	noEmpty = True
+	neitherHasEmpty = True
 
-	# forward ray
-	i = x
-	j = y
-	noProblems = True
-	while i >= 0 and i < 8 and j >= 0 and j < 8:
-		if state[i][j] == 0:
-			noEmpty = False
-			noProblems = False
-			break
-		elif state[i][j] != player:
-			noProblems = False
-			break
-		i += forward[0]
-		j += forward[1]
-	if noProblems:
-		return True
+	for forwardBackward in range(2):
+		thisHasNoEnemyOrEmpty = True
+		i = x
+		j = y
+		while i >= 0 and i < 8 and j >= 0 and j < 8:
+			if state[i][j] == 0:
+				neitherHasEmpty = False
+				thisHasNoEnemyOrEmpty = False
+			elif state[i][j] != player:
+				thisHasNoEnemyOrEmpty = False
+			i += angle[0]
+			j += angle[1]
 
-	# backward ray
-	i = x
-	j = y
-	noProblems = True
-	while i >= 0 and i < 8 and j >= 0 and j < 8:
-		if state[i][j] == 0:
-			noEmpty = False
-			noProblems = False
-			break
-		elif state[i][j] != player:
-			noProblems = False
-			break
-		i += backward[0]
-		j += backward[1]
-	if noProblems:
-		return True
+		if thisHasNoEnemyOrEmpty:
+			return True
+		# reverse ray
+		angle = (-angle[0], -angle[1])
 
-	# finish up
-	if noEmpty:
+	if neitherHasEmpty:
 		return True
 	return False
 
@@ -267,13 +248,15 @@ class SmartAI(AI):
 					alpha=node.alpha,
 					beta=node.beta
 				)
-				children.append((-self.heuristic(child), child))
+				# children.append((-self.heuristic(child), child))
+				children.append(child)
 
 			best = None
-			heapq.heapify(children)
+			# heapq.heapify(children)
 
 			while len(children) > 0:
-				child = heapq.heappop(children)[1]
+				# child = heapq.heappop(children)[1]
+				child = children.pop()
 				child.value = self.minimax(child).value
 				if best == None or child.value > best.value:
 					best = child
@@ -307,13 +290,15 @@ class SmartAI(AI):
 					alpha=node.alpha,
 					beta=node.beta
 				)
-				children.append((self.heuristic(child), child))
+				# children.append((self.heuristic(child), child))
+				children.append(child)
 
 			best = None
-			heapq.heapify(children)
+			# heapq.heapify(children)
 
 			while len(children) > 0:
-				child = heapq.heappop(children)[1]
+				# child = heapq.heappop(children)[1]
+				child = children.pop()
 				child.value = self.minimax(child).value
 				if best == None or child.value < best.value:
 					best = child
