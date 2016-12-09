@@ -81,7 +81,9 @@ def playGame(me, host, AI):
 if __name__ == '__main__':
 	me = int(sys.argv[2])
 	host = sys.argv[1]
-	AIType = sys.argv[3]
+	AIType = ''
+	if len(sys.argv) > 3:
+		AIType = sys.argv[3]
 
 	if AIType == 'smart':
 		AI = SmartAI(me)
