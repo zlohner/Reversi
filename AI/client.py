@@ -85,9 +85,9 @@ if __name__ == '__main__':
 
 	if AIType == 'smart':
 		AI = SmartAI(me)
-	elif AIType == 'random' or not len(AIType):
+	elif AIType == 'random':
 		AI = RandomAI(me)
-	elif AIType == 'new':
+	elif AIType == 'new' or not len(AIType):
 		AI = NewAI(me)
 	else:
 		with open(AIType) as file:

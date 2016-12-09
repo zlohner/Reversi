@@ -57,7 +57,9 @@ class AI(object):
 	# simulate the new state after making a move at (row, col)
 	def simMove(self, state, round, player, row, col):
 		newState = [[state[x][y] for y in range(8)] for x in range(8)]
+		return self.simMoveInPlace(newState, round, player, row, col)
 
+	def simMoveInPlace(self, state, round, player, row, col):
 		# in each direction...
 		for dx in range(-1, 2):
 			for dy in range(-1, 2):
@@ -73,7 +75,7 @@ class AI(object):
 						break
 					elif state[r][c] == player:
 						for square in toFlip:
-							newState[square[0]][square[1]] = player
+							state[square[0]][square[1]] = player
 						break
 					else:
 						toFlip.append([r, c])
@@ -81,6 +83,6 @@ class AI(object):
 						c += dy
 
 		# also give us our new piece
-		newState[row][col] = player
+		state[row][col] = player
 
-		return newState
+		return state
